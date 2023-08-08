@@ -18,16 +18,14 @@ app.post("/signup", async (req, res) => {
   const { email, pwd } = req.body;
 
   try {
-   
-
     if (!email || !pwd) {
       return res.status(400).json({ error: "Please fill all required fields" });
     }
 
-    if (email.indexOf('@') === -1) {
-        return res.status(400).json({ error: "Invalid email" });
+    if (email.indexOf("@") === -1) {
+      return res.status(400).json({ error: "Invalid email" });
     }
-    
+
     if (pwd.length < 8) {
       return res
         .status(400)
@@ -57,14 +55,12 @@ app.post("/login", async (req, res) => {
   const { email, pwd } = req.body;
 
   try {
-   
-
     if (!email || !pwd) {
       return res.status(400).json({ error: "Please fill all required fields" });
     }
 
-    if (email.indexOf('@') === -1) {
-        return res.status(400).json({ error: "Invalid email" });
+    if (email.indexOf("@") === -1) {
+      return res.status(400).json({ error: "Invalid email" });
     }
 
     if (pwd.length < 8) {
@@ -94,6 +90,48 @@ app.post("/login", async (req, res) => {
   } catch (error) {
     console.error("Failed to log in", error);
     res.status(500).json({ error: "Failed to log in" });
+  }
+});
+
+const verifyToken = (req, res, next) => {
+  const token = req.headers.authorization;
+
+  if (!token) {
+    return res.status(401).json({ error: "Token missing" });
+  }
+
+  try {
+    const decoded = jwt.verify(
+      token.split(" ")[1],
+      process.env.YOUR_SECRET_KEY
+    );
+    req.user = decoded;
+    req.user = {
+      userId: decoded.userId,
+      email: decoded.email,
+    };
+    next();
+  } catch (error) {
+    console.error("Failed to verify token, fetch failed", error);
+    res.status(401).json({ error: "Invalid token, fetch failed" });
+  }
+};
+
+app.get("/dashboard", verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const user = await AuthSchemaModel.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    const { email } = user;
+    res.status(200).json({
+      email,
+    });
+  } catch (error) {
+    console.error("Failed to fetch dashboard", error);
+    res.status(500).json({ error: "Failed to fetch dashboard" });
   }
 });
 
